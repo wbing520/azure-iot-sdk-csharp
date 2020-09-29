@@ -258,6 +258,7 @@ namespace Microsoft.Azure.Devices.Client.Transport.AmqpIoT
 
             try
             {
+                // TODO Breakpoint here for callback
                 _receivingAmqpLink.DisposeDelivery(amqpMessage, true, AmqpIoTConstants.AcceptedOutcome);
                 string correlationId = amqpMessage.Properties?.CorrelationId?.ToString();
 

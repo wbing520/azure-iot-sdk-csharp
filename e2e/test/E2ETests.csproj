@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1;netcoreapp2.1.18;net472;net451</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1;netcoreapp2.1.18;net472</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' != 'Windows_NT'">netcoreapp3.1;netcoreapp2.1.18</TargetFrameworks>
     <LangVersion>8.0</LangVersion>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
@@ -67,7 +67,7 @@
   <ItemGroup Condition=" '$(AZURE_IOT_LOCALPACKAGES)' != '' ">
     <PackageReference Include="Microsoft.Azure.Devices" Version="1.*" />
     <PackageReference Include="Microsoft.Azure.Devices.Shared" Version="1.*" />
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.*" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.28.0" />
   </ItemGroup>
   <ItemGroup Condition=" ('$(AZURE_IOT_LOCALPACKAGES.ToUpper())' != '') And ( '$(TargetFramework)' != 'net451' ) ">
     <PackageReference Include="Microsoft.Azure.Devices.Provisioning.Client" Version="1.*" />
@@ -77,5 +77,8 @@
     <PackageReference Include="Microsoft.Azure.Devices.Provisioning.Security.Tpm" Version="1.*" />
     <PackageReference Include="Microsoft.Azure.Devices.Provisioning.Service" Version="1.*" />
     <ProjectReference Include="$(RootDir)\security\tpm\samples\SecurityProviderTpmSimulator\SecurityProviderTpmSimulator.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="provisioning\" />
   </ItemGroup>
 </Project>
