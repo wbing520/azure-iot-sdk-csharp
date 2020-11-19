@@ -21,6 +21,58 @@ namespace Microsoft.Azure.Devices.E2ETests.Twins
         private readonly string _devicePrefix = $"E2E_{nameof(TwinE2ETests)}_";
 
         [LoggedTestMethod]
+        public async Task TempTest()
+        {
+            Console.WriteLine("creating deviceClient");
+            TestDevice testDevice = await TestDevice.GetTestDeviceAsync(Logger, "tempDevice").ConfigureAwait(false);
+            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(testDevice.ConnectionString,
+                Client.TransportType.Amqp);
+
+            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(Configuration.IoTHub.ConnectionString);
+
+            // This order causes AMQP to not receive any desired property updates when the property is updated through Azure Portal.
+            // Updates are received when they are sent by our own registry manager, though. I can't repro any similar issue
+            // on Java, and since the order appears to matter here, it is probably a C# SDK bug
+            //await deviceClient.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyHandler, null);
+            //await deviceClient.SetMethodDefaultHandlerAsync(methodHandler, null);
+
+            // This order works fine. Desired property updates are received as expected
+            await deviceClient.SetMethodDefaultHandlerAsync(methodHandler, null);
+            await deviceClient.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyHandler, null);
+
+            while (true)
+            {
+                Thread.Sleep(1000 * 5);
+
+                // Setting property through portal does trigger callback when this line is uncommented, even if
+                // no other logic runs. Why would a service client method need to be called before a device client
+                // callback would be executed?
+                //var currentTwin = await registryManager.GetTwinAsync(testDevice.Id).ConfigureAwait(false);
+
+                // Patch twin without getting it first does cause the device side callback to fire as expected
+                //Twin currentTwin = new Twin(testDevice.Id);
+                //currentTwin.Properties.Desired["someProp"] = Guid.NewGuid().ToString();
+                //await registryManager.UpdateTwinAsync(testDevice.Id, currentTwin, "*");
+
+                // Replace twin without getting it first does cause the device side callback to fire as expected
+                //currentTwin.Properties.Desired["someProp"] = Guid.NewGuid().ToString();
+                //await registryManager.ReplaceTwinAsync(testDevice.Id, currentTwin, "*");
+
+                // Only when the twin is updated through the portal do we see no desired property callback handler fire
+            }
+        }
+
+        private static Task desiredPropertyHandler(TwinCollection desiredProperties, object userContext)
+        {
+            return Task.CompletedTask;
+        }
+
+        private static Task<MethodResponse> methodHandler(MethodRequest methodRequest, object userContext)
+        {
+            return Task.FromResult(new MethodResponse(200));
+        }
+
+        [LoggedTestMethod]
         public async Task Twin_DeviceSetsReportedPropertyAndGetsItBack_Mqtt()
         {
             await Twin_DeviceSetsReportedPropertyAndGetsItBackSingleDeviceAsync(Client.TransportType.Mqtt_Tcp_Only).ConfigureAwait(false);
