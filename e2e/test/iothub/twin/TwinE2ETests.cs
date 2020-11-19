@@ -64,7 +64,12 @@ namespace Microsoft.Azure.Devices.E2ETests.Twins
 
         private static Task desiredPropertyHandler(TwinCollection desiredProperties, object userContext)
         {
+#if !NET451
             return Task.CompletedTask;
+#endif
+#if NET451
+            throw new Exception("Don't care about net451 in particular");
+#endif
         }
 
         private static Task<MethodResponse> methodHandler(MethodRequest methodRequest, object userContext)
@@ -463,14 +468,14 @@ namespace Microsoft.Azure.Devices.E2ETests.Twins
 
             TestDevice testDevice = await TestDevice.GetTestDeviceAsync(Logger, _devicePrefix).ConfigureAwait(false);
             using var deviceClient = DeviceClient.CreateFromConnectionString(testDevice.ConnectionString, transport);
-            
+
             // Set a callback
             await deviceClient.
                 SetDesiredPropertyUpdateCallbackAsync(
                     (patch, context) =>
                     {
                         Logger.Trace($"{nameof(SetTwinPropertyUpdateCallbackHandlerAsync)}: DesiredProperty: {patch}, {context}");
-                        
+
                         // After unsubscribing it should never reach here
                         Assert.IsNull(patch);
 
@@ -490,7 +495,7 @@ namespace Microsoft.Azure.Devices.E2ETests.Twins
             await deviceClient.CloseAsync().ConfigureAwait(false);
         }
 
-            private async Task Twin_ServiceSetsDesiredPropertyAndDeviceReceivesEventAsync(Client.TransportType transport, Func<DeviceClient, string, object, MsTestLogger, Task<Task>> setTwinPropertyUpdateCallbackAsync, object propValue)
+        private async Task Twin_ServiceSetsDesiredPropertyAndDeviceReceivesEventAsync(Client.TransportType transport, Func<DeviceClient, string, object, MsTestLogger, Task<Task>> setTwinPropertyUpdateCallbackAsync, object propValue)
         {
             var propName = Guid.NewGuid().ToString();
 
