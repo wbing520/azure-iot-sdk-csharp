@@ -35,6 +35,9 @@ namespace Microsoft.Azure.Devices.Provisioning.Client.Transport
         private const string GetOperationsTopic = "$dps/registrations/GET/iotdps-get-operationstatus/?$rid={0}&operationId={1}";
         private static readonly Regex s_registrationStatusTopicRegex = new Regex("^\\$dps/registrations/res/(.*?)/\\?\\$rid=(.*?)$", RegexOptions.Compiled);
         private static readonly TimeSpan s_defaultOperationPoolingInterval = TimeSpan.FromSeconds(2);
+        private static readonly TimeSpan s_pingResponseTimeout = TimeSpan.FromSeconds(30); // The ping response duration is set to 30 secs.
+        private static readonly Action<object> s_pingServerCallback = PingServerAsync;
+        private static readonly SemaphoreSlim s_pingResponseSemaphore = new SemaphoreSlim(0, 1);
 
         private const string Registration = "registration";
 
@@ -208,9 +211,75 @@ namespace Microsoft.Azure.Devices.Provisioning.Client.Transport
             return context.WriteAndFlushAsync(message);
         }
 
+        private async void PingServerAsync(object ctx)
+        {
+            if (Logging.IsEnabled)
+                Logging.Enter(ctx, $"Scheduled check to see if a ping request should be sent.", nameof(PingServerAsync));
+
+            var context = (IChannelHandlerContext)ctx;
+            try
+            {
+                var self = (MqttIotHubAdapter)context.Handler;
+
+                if (!self.IsInState(StateFlags.Connected))
+                {
+                    return;
+                }
+
+                TimeSpan idleTime = DateTime.UtcNow - self._lastChannelActivityTime;
+                if (Logging.IsEnabled)
+                    Logging.Info(context, $"Idle time currently is {idleTime}.", nameof(PingServerAsync));
+
+                if (idleTime > self._pingRequestInterval)
+                {
+                    // We've been idle for too long, send a ping!
+                    await context.WriteAndFlushAsync(PingReqPacket.Instance).ConfigureAwait(true);
+
+                    if (Logging.IsEnabled)
+                        Logging.Info(context, $"Idle time was {idleTime}, so ping request was sent.", nameof(PingServerAsync));
+
+                    // Wait to capture the ping response semaphore, which is released when a PINGRESP packet is received.
+                    bool receivedPingResponse = await s_pingResponseSemaphore.WaitAsync(s_pingResponseTimeout).ConfigureAwait(false);
+                    if (!receivedPingResponse)
+                    {
+                        if (Logging.IsEnabled)
+                            Logging.Info(context, $"The ping response wasn't received in {s_pingResponseTimeout}, will shut down.", nameof(PingServerAsync));
+
+                        await FailWithExceptionAsync(
+                            context,
+                            new ProvisioningTransportException(
+                                $"{ExceptionPrefix} PINGRESP was not received in the expected time of {s_pingResponseTimeout}.")).ConfigureAwait(true);
+                    }
+
+                    if (Logging.IsEnabled)
+                        Logging.Info(context, $"Ping response was received successfully.", nameof(PingServerAsync));
+                }
+
+                self.ScheduleKeepConnectionAliveAsync(context);
+            }
+            catch (Exception ex)
+            {
+                if (Logging.IsEnabled)
+                    Logging.Error(context, $"An exception occurred while sending a ping request, will shut down: {ex}", nameof(ConnectAsync));
+
+                await FailWithExceptionAsync(
+                        context,
+                        new ProvisioningTransportException(
+                            $"{ExceptionPrefix} An exception occurred while sending a ping request, will shut down.")).ConfigureAwait(true);
+            }
+
+            if (Logging.IsEnabled)
+                Logging.Exit(ctx, $"Scheduled check to see if a ping request should be sent.", nameof(PingServerAsync));
+        }
+
         private async Task ProcessMessageAsync(IChannelHandlerContext context, Packet message)
         {
             var currentState = (State)Volatile.Read(ref _state);
+
+            if (message.PacketType == PacketType.PINGRESP)
+            {
+                ProcessPingResp(context, (PingRespPacket)message);
+            }
 
             switch (currentState)
             {
@@ -311,6 +380,17 @@ namespace Microsoft.Azure.Devices.Provisioning.Client.Transport
                             $"{ExceptionPrefix} CONNACK failed unknown return code: {packet.ReturnCode}")).ConfigureAwait(true);
                     break;
             }
+        }
+
+        private void ProcessPingResp(IChannelHandlerContext context, PingRespPacket packet)
+        {
+            if (Logging.IsEnabled)
+                Logging.Enter(this, context.Name, packet, nameof(ProcessPingResp));
+
+            s_pingResponseSemaphore.Release();
+
+            if (Logging.IsEnabled)
+                Logging.Exit(this, context.Name, packet, nameof(ProcessPingResp));
         }
 
         private Task SubscribeAsync(IChannelHandlerContext context)
