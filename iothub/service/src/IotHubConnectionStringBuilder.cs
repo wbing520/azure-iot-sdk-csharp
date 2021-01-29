@@ -47,7 +47,8 @@ namespace Microsoft.Azure.Devices
         /// </summary>
         /// <param name="hostname">The host name.</param>
         /// <param name="authenticationMethod">The authentication method.</param>
-        /// <returns></returns>
+        /// <returns>An instance of <see cref="IotHubConnectionStringBuilder"/> object.</returns>
+        [Obsolete("This is not for external use.")]
         public static IotHubConnectionStringBuilder Create(string hostname, IAuthenticationMethod authenticationMethod)
         {
             var iotHubConnectionStringBuilder = new IotHubConnectionStringBuilder
@@ -299,7 +300,8 @@ namespace Microsoft.Azure.Devices
             return value;
         }
 
-        internal static string GetIotHubName(string hostName)
+        // (Sindhu): Change back to internal
+        private static string GetIotHubName(string hostName)
         {
             int index = hostName.IndexOf(HostNameSeparator, StringComparison.OrdinalIgnoreCase);
             string iotHubName = index >= 0 ? hostName.Substring(0, index) : hostName;

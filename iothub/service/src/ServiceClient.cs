@@ -6,6 +6,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.Devices.Shared;
 
+#if !NET451
+
+using Azure.Core;
+
+#endif
+
 namespace Microsoft.Azure.Devices
 {
     /// <summary>
@@ -66,25 +72,56 @@ namespace Microsoft.Azure.Devices
         protected virtual void Dispose(bool disposing) { }
 
         /// <summary>
-        /// Create ServiceClient from the specified connection string using specified Transport Type
+        /// Create ServiceClient from the specified connection string using specified Transport Type.
         /// </summary>
-        /// <param name="connectionString">Connection string for the IoT Hub</param>
-        /// <param name="transportType">Specifies whether Amqp or Amqp_WebSocket_Only transport is used</param>
+        /// <param name="connectionString">Connection string for the IoT hub.</param>
+        /// <param name="transportType">Specifies whether Amqp or Amqp_WebSocket_Only transport is used.</param>
         /// <param name="options">The options that allow configuration of the service client instance during initialization.</param>
-        /// <returns></returns>
+        /// <returns>An instance of <see cref="ServiceClient"/>.</returns>
         public static ServiceClient CreateFromConnectionString(string connectionString, TransportType transportType, ServiceClientOptions options = default)
         {
             return CreateFromConnectionString(connectionString, transportType, new ServiceClientTransportSettings(), options);
         }
 
+#if !NET451
+
         /// <summary>
-        /// Create ServiceClient from the specified connection string using specified Transport Type
+        /// Create ServiceClient using AAD token credentials and the specified Transport Type.
         /// </summary>
-        /// <param name="connectionString">Connection string for the IoT Hub</param>
-        /// <param name="transportType">Specifies whether Amqp or Amqp_WebSocket_Only transport is used</param>
-        /// <param name="transportSettings">Specifies the AMQP and HTTP proxy settings for Service Client</param>
+        /// <param name="hostName">IoT hub host name.</param>
+        /// <param name="credential">AAD credentials for IoT Hub.</param>
+        /// <param name="transportType">Specifies whether Amqp or Amqp_WebSocket_Only transport is used.</param>
+        /// <param name="transportSettings">Specifies the AMQP and HTTP proxy settings for Service Client.</param>
         /// <param name="options">The options that allow configuration of the service client instance during initialization.</param>
-        /// <returns></returns>
+        /// <returns>An instance of <see cref="ServiceClient"/>.</returns>
+        public static ServiceClient CreateFromTokenCredentials(
+            string hostName,
+            TokenCredential credential,
+            TransportType transportType,
+            ServiceClientTransportSettings transportSettings = default,
+            ServiceClientOptions options = default)
+        {
+            var iotTokenCredential = new IotHubTokenCredential(hostName, credential);
+            bool useWebSocketOnly = transportType == TransportType.Amqp_WebSocket_Only;
+            var serviceClient = new AmqpServiceClient(
+                hostName,
+                iotTokenCredential,
+                useWebSocketOnly,
+                transportSettings ?? new ServiceClientTransportSettings(),
+                options);
+            return serviceClient;
+        }
+
+#endif
+
+        /// <summary>
+        /// Create ServiceClient from the specified connection string using specified Transport Type.
+        /// </summary>
+        /// <param name="connectionString">Connection string for the IoT hub.</param>
+        /// <param name="transportType">Specifies whether Amqp or Amqp_WebSocket_Only transport is used.</param>
+        /// <param name="transportSettings">Specifies the AMQP and HTTP proxy settings for Service Client.</param>
+        /// <param name="options">The options that allow configuration of the service client instance during initialization.</param>
+        /// <returns>An instance of <see cref="ServiceClient"/>.</returns>
         public static ServiceClient CreateFromConnectionString(string connectionString, TransportType transportType, ServiceClientTransportSettings transportSettings, ServiceClientOptions options = default)
         {
             if (transportSettings == null)

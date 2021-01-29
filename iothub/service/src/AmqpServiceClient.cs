@@ -60,6 +60,29 @@ namespace Microsoft.Azure.Devices
             AmqpTrace.Provider = new AmqpTransportLog();
         }
 
+        public AmqpServiceClient(string hostName, IotHubTokenCredential iotHubCredential, bool useWebSocketOnly, ServiceClientTransportSettings transportSettings, ServiceClientOptions options)
+        {
+            var iotHubConnection = new IotHubConnection(iotHubCredential, AccessRights.ServiceConnect, useWebSocketOnly, transportSettings);
+            Connection = iotHubConnection;
+            OpenTimeout = IotHubConnection.DefaultOpenTimeout;
+            OperationTimeout = IotHubConnection.DefaultOperationTimeout;
+            _sendingPath = "/messages/deviceBound";
+            _faultTolerantSendingLink = new FaultTolerantAmqpObject<SendingAmqpLink>(CreateSendingLinkAsync, Connection.CloseLink);
+            _feedbackReceiver = new AmqpFeedbackReceiver(Connection);
+            _fileNotificationReceiver = new AmqpFileNotificationReceiver(Connection);
+            _iotHubName = hostName; // Get hub name from hostname
+            _clientOptions = options;
+            _httpClientHelper = new HttpClientHelper(
+                iotHubCredential.HttpsEndpoint,
+                iotHubCredential,
+                ExceptionHandlingHelper.GetDefaultErrorMapping(),
+                s_defaultOperationTimeout,
+                transportSettings.HttpProxy);
+
+            // Set the trace provider for the AMQP library.
+            AmqpTrace.Provider = new AmqpTransportLog();
+        }
+
         internal AmqpServiceClient(IHttpClientHelper httpClientHelper) : base()
         {
             _httpClientHelper = httpClientHelper;

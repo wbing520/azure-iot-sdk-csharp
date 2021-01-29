@@ -11,12 +11,11 @@ using Microsoft.Azure.Devices.Common.Security;
 
 namespace Microsoft.Azure.Devices
 {
-    internal sealed class IotHubConnectionString : IAuthorizationHeaderProvider, ICbsTokenProvider
+    internal sealed class IotHubConnectionString : IotHubConnectionBase
     {
-        private static readonly TimeSpan s_defaultTokenTimeToLive = TimeSpan.FromHours(1);
         private const char UserSeparator = '@';
 
-        public IotHubConnectionString(IotHubConnectionStringBuilder builder)
+        public IotHubConnectionString(IotHubConnectionStringBuilder builder) : base(builder.HostName)
         {
             if (builder == null)
             {
@@ -24,25 +23,10 @@ namespace Microsoft.Azure.Devices
             }
 
             Audience = builder.HostName;
-            HostName = string.IsNullOrEmpty(builder.GatewayHostName) ? builder.HostName : builder.GatewayHostName;
             SharedAccessKeyName = builder.SharedAccessKeyName;
             SharedAccessKey = builder.SharedAccessKey;
             SharedAccessSignature = builder.SharedAccessSignature;
-            IotHubName = builder.IotHubName;
-            HttpsEndpoint = new UriBuilder("https", HostName).Uri;
-            AmqpEndpoint = new UriBuilder(CommonConstants.AmqpsScheme, builder.HostName, AmqpConstants.DefaultSecurePort).Uri;
-            DeviceId = builder.DeviceId;
-            ModuleId = builder.ModuleId;
-            GatewayHostName = builder.GatewayHostName;
         }
-
-        public string IotHubName { get; private set; }
-
-        public string HostName { get; private set; }
-
-        public Uri HttpsEndpoint { get; private set; }
-
-        public Uri AmqpEndpoint { get; private set; }
 
         public string Audience { get; private set; }
 
@@ -51,12 +35,6 @@ namespace Microsoft.Azure.Devices
         public string SharedAccessKey { get; private set; }
 
         public string SharedAccessSignature { get; private set; }
-
-        public string DeviceId { get; private set; }
-
-        public string ModuleId { get; private set; }
-
-        public string GatewayHostName { get; private set; }
 
         public string GetUser()
         {
@@ -85,12 +63,12 @@ namespace Microsoft.Azure.Devices
             return password;
         }
 
-        public string GetAuthorizationHeader()
+        public override string GetAuthorizationHeader()
         {
             return GetPassword();
         }
 
-        Task<CbsToken> ICbsTokenProvider.GetTokenAsync(Uri namespaceAddress, string appliesTo, string[] requiredClaims)
+        public override Task<CbsToken> GetTokenAsync(Uri namespaceAddress, string appliesTo, string[] requiredClaims)
         {
             string tokenValue;
             CbsToken token;
@@ -130,16 +108,9 @@ namespace Microsoft.Azure.Devices
             {
                 KeyName = SharedAccessKeyName,
                 Key = SharedAccessKey,
-                TimeToLive = s_defaultTokenTimeToLive,
+                TimeToLive = _defaultTokenTimeToLive,
                 Target = Audience
             };
-
-            if (DeviceId != null)
-            {
-                builder.Target = string.IsNullOrEmpty(ModuleId)
-                    ? "{0}/devices/{1}".FormatInvariant(Audience, WebUtility.UrlEncode(DeviceId))
-                    : "{0}/devices/{1}/modules/{2}".FormatInvariant(Audience, WebUtility.UrlEncode(DeviceId), WebUtility.UrlEncode(ModuleId));
-            }
 
             ttl = builder.TimeToLive;
 
