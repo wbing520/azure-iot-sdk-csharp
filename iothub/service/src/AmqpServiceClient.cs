@@ -60,6 +60,14 @@ namespace Microsoft.Azure.Devices
             AmqpTrace.Provider = new AmqpTransportLog();
         }
 
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="hostName"></param>
+        /// <param name="iotHubCredential"></param>
+        /// <param name="useWebSocketOnly"></param>
+        /// <param name="transportSettings"></param>
+        /// <param name="options"></param>
         public AmqpServiceClient(string hostName, IotHubTokenCredential iotHubCredential, bool useWebSocketOnly, ServiceClientTransportSettings transportSettings, ServiceClientOptions options)
         {
             var iotHubConnection = new IotHubConnection(iotHubCredential, AccessRights.ServiceConnect, useWebSocketOnly, transportSettings);

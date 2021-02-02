@@ -5,6 +5,13 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+
+#if !NET451
+
+using Azure.Core;
+
+#endif
+
 using Microsoft.Azure.Devices.Shared;
 
 namespace Microsoft.Azure.Devices
@@ -46,6 +53,39 @@ namespace Microsoft.Azure.Devices
             return new HttpRegistryManager(iotHubConnectionString, transportSettings);
         }
 
+#if !NET451
+
+        /// <summary>
+        /// Creates an instance of <see cref="RegistryManager"/>.
+        /// </summary>
+        /// <param name="iotHubCredential">Credentials to authenticate with IoT Hub. The available type is <see cref="IotHubTokenCredential"/>.</param>
+        /// <param name="transportSettings">The HTTP transport settings.</param>
+        /// <returns>An instance of <see cref="RegistryManager"/>.</returns>
+        public static RegistryManager Create(
+            string hostName,
+            TokenCredential credential,
+            TokenType tokenType,
+            HttpTransportSettings transportSettings)
+        {
+            if (transportSettings == null)
+            {
+                throw new ArgumentNullException(nameof(transportSettings), "The HTTP transport settings cannot be null.");
+            }
+
+            if (credential == null)
+            {
+                throw new ArgumentNullException($"{nameof(credential)} is null");
+            }
+
+            var tokenCredential = new IotHubTokenCredential(hostName, credential, tokenType);
+
+            TlsVersions.Instance.SetLegacyAcceptableVersions();
+
+            return new HttpRegistryManager(tokenCredential, transportSettings);
+        }
+
+#endif
+
         /// <inheritdoc />
         public void Dispose()
         {
@@ -83,7 +123,6 @@ namespace Microsoft.Azure.Devices
         /// <param name="cancellationToken">The token which allows the operation to be canceled.</param>
         /// <returns>The Device object with the generated keys and ETags.</returns>
         public abstract Task<Device> AddDeviceAsync(Device device, CancellationToken cancellationToken);
-
 
         /// <summary>
         /// Register a new module with device in the system

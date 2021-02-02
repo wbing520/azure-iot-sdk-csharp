@@ -5,6 +5,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.Devices.Shared;
+using System.Diagnostics;
 
 #if !NET451
 
@@ -86,29 +87,44 @@ namespace Microsoft.Azure.Devices
 #if !NET451
 
         /// <summary>
-        /// Create ServiceClient using AAD token credentials and the specified Transport Type.
+        /// Create ServiceClient using AAD or Connection String token credentials and the specified Transport Type.
         /// </summary>
         /// <param name="hostName">IoT hub host name.</param>
-        /// <param name="credential">AAD credentials for IoT Hub.</param>
+        /// <param name="credential">Credentials to authenticate with IoT Hub.</param>
+        /// <param name="tokenType">The token type returned by the credential implementation. Possible values are <see cref="TokenType"/></param>
         /// <param name="transportType">Specifies whether Amqp or Amqp_WebSocket_Only transport is used.</param>
         /// <param name="transportSettings">Specifies the AMQP and HTTP proxy settings for Service Client.</param>
         /// <param name="options">The options that allow configuration of the service client instance during initialization.</param>
         /// <returns>An instance of <see cref="ServiceClient"/>.</returns>
-        public static ServiceClient CreateFromTokenCredentials(
+        public static ServiceClient Create(
             string hostName,
             TokenCredential credential,
+            TokenType tokenType,
             TransportType transportType,
             ServiceClientTransportSettings transportSettings = default,
             ServiceClientOptions options = default)
         {
-            var iotTokenCredential = new IotHubTokenCredential(hostName, credential);
+            if (string.IsNullOrEmpty(hostName))
+            {
+                throw new ArgumentNullException($"{nameof(hostName)} is null or empty");
+            }
+
+            if (credential == null)
+            {
+                throw new ArgumentNullException($"{nameof(credential)} is null");
+            }
+
+            var tokenCredential = new IotHubTokenCredential(hostName, credential, tokenType);
+
             bool useWebSocketOnly = transportType == TransportType.Amqp_WebSocket_Only;
+
             var serviceClient = new AmqpServiceClient(
                 hostName,
-                iotTokenCredential,
+                tokenCredential,
                 useWebSocketOnly,
                 transportSettings ?? new ServiceClientTransportSettings(),
                 options);
+
             return serviceClient;
         }
 

@@ -12,7 +12,8 @@ namespace Microsoft.Azure.Devices
     /// <summary>
     /// The IoT hub connection properties that are not dependent on the authentication type.
     /// </summary>
-    internal abstract class IotHubConnectionBase : IAuthorizationHeaderProvider, ICbsTokenProvider
+    public abstract class IotHubConnectionBase
+        : IAuthorizationHeaderProvider, ICbsTokenProvider
     {
         private const string HostNameSeparator = ".";
 

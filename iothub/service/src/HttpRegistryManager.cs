@@ -65,6 +65,17 @@ namespace Microsoft.Azure.Devices
                 transportSettings.Proxy);
         }
 
+        internal HttpRegistryManager(IotHubTokenCredential iotHubCredential, HttpTransportSettings transportSettings)
+        {
+            _iotHubName = iotHubCredential.IotHubName;
+            _httpClientHelper = new HttpClientHelper(
+                iotHubCredential.HttpsEndpoint,
+                iotHubCredential,
+                ExceptionHandlingHelper.GetDefaultErrorMapping(),
+                s_defaultOperationTimeout,
+                transportSettings.Proxy);
+        }
+
         // internal test helper
         internal HttpRegistryManager(IHttpClientHelper httpClientHelper, string iotHubName)
         {
@@ -735,7 +746,6 @@ namespace Microsoft.Azure.Devices
             {
                 Logging.Exit(this, $"Updating multiple devices: count: {devices?.Count()} - Force update: {forceUpdate}", nameof(UpdateDevices2Async));
             }
-
         }
 
         public override Task RemoveDeviceAsync(string deviceId)
@@ -937,7 +947,6 @@ namespace Microsoft.Azure.Devices
 
                 return _httpClientHelper.GetAsync<RegistryStatistics>(GetStatisticsUri(), errorMappingOverrides, null, cancellationToken);
             }
-
             catch (Exception ex)
             {
                 Logging.Error(this, $"{nameof(GetRegistryStatisticsAsync)} threw an exception: {ex}", nameof(GetRegistryStatisticsAsync));
@@ -1037,7 +1046,6 @@ namespace Microsoft.Azure.Devices
 
             try
             {
-
                 EnsureInstanceNotClosed();
 
                 return _httpClientHelper.GetAsync<IEnumerable<Module>>(
@@ -1473,7 +1481,6 @@ namespace Microsoft.Azure.Devices
             Logging.Enter(this, $"Import Job running with {jobParameters}", nameof(ImportDevicesAsync));
             try
             {
-
                 jobParameters.Type = JobType.ImportDevices;
                 return CreateJobAsync(jobParameters, cancellationToken);
             }

@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Api.Test.ConnectionString
             var serviceClient = (AmqpServiceClient)ServiceClient.CreateFromConnectionString(connectionString);
 
             Assert.IsNotNull(serviceClient.Connection);
-            Assert.IsNotNull(serviceClient.Connection.Connection);
+            Assert.IsNotNull(serviceClient.Connection.IotHubCredential);
         }
 
         [TestMethod]
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Api.Test.ConnectionString
             var serviceClient = (AmqpServiceClient)ServiceClient.CreateFromConnectionString(connectionString);
 
             Assert.IsNotNull(serviceClient.Connection);
-            Assert.IsNotNull(serviceClient.Connection.Connection);
+            Assert.IsNotNull(serviceClient.Connection.IotHubCredential);
         }
 
         [TestMethod]
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Api.Test.ConnectionString
             var serviceClient = (AmqpServiceClient)ServiceClient.CreateFromConnectionString(connectionString);
 
             Assert.IsNotNull(serviceClient.Connection);
-            Assert.IsNotNull(serviceClient.Connection.Connection);
+            Assert.IsNotNull(serviceClient.Connection.IotHubCredential);
         }
 
         [TestMethod]
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Api.Test.ConnectionString
             var serviceClient = (AmqpServiceClient)ServiceClient.CreateFromConnectionString(connectionString);
 
             Assert.IsNotNull(serviceClient.Connection);
-            Assert.IsNotNull(serviceClient.Connection.Connection);
+            Assert.IsNotNull(serviceClient.Connection.IotHubCredential);
         }
 
         [TestMethod]
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Api.Test.ConnectionString
             var serviceClient = (AmqpServiceClient)ServiceClient.CreateFromConnectionString(connectionString);
 
             Assert.IsNotNull(serviceClient.Connection);
-            Assert.IsNotNull(serviceClient.Connection.Connection);
+            Assert.IsNotNull(serviceClient.Connection.IotHubCredential);
         }
 
         [TestMethod]
@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Api.Test.ConnectionString
             var serviceClient = (AmqpServiceClient)ServiceClient.CreateFromConnectionString(connectionString);
 
             Assert.IsNotNull(serviceClient.Connection);
-            Assert.IsNotNull(serviceClient.Connection.Connection);
+            Assert.IsNotNull(serviceClient.Connection.IotHubCredential);
         }
 
         [TestMethod]
@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Api.Test.ConnectionString
             var serviceClient = (AmqpServiceClient)ServiceClient.CreateFromConnectionString(connectionString);
 
             Assert.IsNotNull(serviceClient.Connection);
-            Assert.IsNotNull(serviceClient.Connection.Connection);
+            Assert.IsNotNull(serviceClient.Connection.IotHubCredential);
         }
 
         [TestMethod]
@@ -182,7 +182,7 @@ namespace Microsoft.Azure.Devices.Api.Test.ConnectionString
             var serviceClient = (AmqpServiceClient)ServiceClient.CreateFromConnectionString(connectionString);
 
             Assert.IsNotNull(serviceClient.Connection);
-            IotHubConnectionString iotHubConnectionString = (IotHubConnectionString)serviceClient.Connection.Connection;
+            IotHubConnectionString iotHubConnectionString = (IotHubConnectionString)serviceClient.Connection.IotHubCredential;
             Assert.IsNotNull(iotHubConnectionString);
             Assert.AreEqual("testhub.azure-devices-int.net", iotHubConnectionString.Audience);
             Assert.AreEqual("edgehub1.ms.com", iotHubConnectionString.HostName);

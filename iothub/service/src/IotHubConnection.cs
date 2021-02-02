@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices
         private IOThreadTimer _refreshTokenTimer;
 #endif
 
-        public IotHubConnection(IotHubConnectionBase connection, AccessRights accessRights, bool useWebSocketOnly, ServiceClientTransportSettings transportSettings)
+        public IotHubConnection(IotHubConnectionBase iotHubCredential, AccessRights accessRights, bool useWebSocketOnly, ServiceClientTransportSettings transportSettings)
         {
 #if !NET451
             _refreshTokenTimer = new IOThreadTimerSlim(s => ((IotHubConnection)s).OnRefreshTokenAsync(), this);
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices
             _refreshTokenTimer = new IOThreadTimer(s => ((IotHubConnection)s).OnRefreshTokenAsync(), this, false);
 #endif
 
-            Connection = connection;
+            IotHubCredential = iotHubCredential;
             _accessRights = accessRights;
             _faultTolerantSession = new FaultTolerantAmqpObject<AmqpSession>(CreateSessionAsync, CloseConnection);
             _useWebSocketOnly = useWebSocketOnly;
@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices
             _faultTolerantSession = new FaultTolerantAmqpObject<AmqpSession>(onCreate, onClose);
         }
 
-        internal IotHubConnectionBase Connection { get; private set; }
+        internal IotHubConnectionBase IotHubCredential { get; private set; }
 
         public Task OpenAsync(TimeSpan timeout)
         {
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices
                     session = await _faultTolerantSession.GetOrCreateAsync(timeoutHelper.RemainingTime()).ConfigureAwait(false);
                 }
 
-                Uri linkAddress = Connection.BuildLinkAddress(path);
+                Uri linkAddress = IotHubCredential.BuildLinkAddress(path);
 
                 var linkSettings = new AmqpLinkSettings
                 {
@@ -156,7 +156,7 @@ namespace Microsoft.Azure.Devices
                     session = await _faultTolerantSession.GetOrCreateAsync(timeoutHelper.RemainingTime()).ConfigureAwait(false);
                 }
 
-                Uri linkAddress = Connection.BuildLinkAddress(path);
+                Uri linkAddress = IotHubCredential.BuildLinkAddress(path);
 
                 var linkSettings = new AmqpLinkSettings
                 {
@@ -306,7 +306,7 @@ namespace Microsoft.Azure.Devices
                 {
                     MaxFrameSize = AmqpConstants.DefaultMaxFrameSize,
                     ContainerId = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture), // Use a human readable link name to help with debugging
-                    HostName = Connection.AmqpEndpoint.Host,
+                    HostName = IotHubCredential.AmqpEndpoint.Host,
                 };
 
                 var amqpConnection = new AmqpConnection(transport, amqpSettings, amqpConnectionSettings);
@@ -430,7 +430,7 @@ namespace Microsoft.Azure.Devices
             try
             {
                 var timeoutHelper = new TimeoutHelper(timeout);
-                var websocketUri = new Uri($"{ WebSocketConstants.Scheme }{ Connection.HostName}:{ WebSocketConstants.SecurePort}{WebSocketConstants.UriSuffix}");
+                var websocketUri = new Uri($"{ WebSocketConstants.Scheme }{ IotHubCredential.HostName}:{ WebSocketConstants.SecurePort}{WebSocketConstants.UriSuffix}");
 
                 Logging.Info(this, websocketUri, nameof(CreateClientWebSocketTransportAsync));
 
@@ -494,13 +494,13 @@ namespace Microsoft.Azure.Devices
         {
             var tcpTransportSettings = new TcpTransportSettings
             {
-                Host = Connection.HostName,
-                Port = Connection.AmqpEndpoint.Port,
+                Host = IotHubCredential.HostName,
+                Port = IotHubCredential.AmqpEndpoint.Port,
             };
 
             var tlsTransportSettings = new TlsTransportSettings(tcpTransportSettings)
             {
-                TargetHost = Connection.HostName,
+                TargetHost = IotHubCredential.HostName,
                 Certificate = null, // TODO: add client cert support
                 CertificateValidationCallback = OnRemoteCertificateValidation
             };
@@ -545,12 +545,12 @@ namespace Microsoft.Azure.Devices
         {
             Logging.Enter(this, cbsLink, timeout, nameof(SendCbsTokenAsync));
 
-            string audience = Connection.AmqpEndpoint.AbsoluteUri;
-            string resource = Connection.AmqpEndpoint.AbsoluteUri;
+            string audience = IotHubCredential.AmqpEndpoint.AbsoluteUri;
+            string resource = IotHubCredential.AmqpEndpoint.AbsoluteUri;
             DateTime expiresAtUtc = await cbsLink
                 .SendTokenAsync(
-                    Connection,
-                    Connection.AmqpEndpoint,
+                    IotHubCredential,
+                    IotHubCredential.AmqpEndpoint,
                     audience,
                     resource,
                     AccessRightsHelper.AccessRightsToStringArray(_accessRights),

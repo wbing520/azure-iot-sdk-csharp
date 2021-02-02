@@ -3,6 +3,12 @@
 
 namespace Microsoft.Azure.Devices
 {
+#if !NET451
+
+    using global::Azure.Core;
+
+#endif
+
     using Microsoft.Azure.Devices.Shared;
     using System;
     using System.Threading;
@@ -41,6 +47,39 @@ namespace Microsoft.Azure.Devices
             return new HttpJobClient(iotHubConnectionString, transportSettings);
         }
 
+#if !NET451
+
+        /// <summary>
+        /// Creates an instance of <see cref="JobClient"/>.
+        /// </summary>
+        /// <param name="iotHubCredential">Credentials to authenticate with IoT Hub. The available type is <see cref="IotHubTokenCredential"/>.</param>
+        /// <param name="transportSettings">The HTTP transport settings.</param>
+        /// <returns>An instance of <see cref="JobClient"/>.</returns>
+        public static JobClient Create(
+            string hostName,
+            TokenCredential credential,
+            TokenType tokenType,
+            HttpTransportSettings transportSettings)
+        {
+            if (transportSettings == null)
+            {
+                throw new ArgumentNullException(nameof(transportSettings), "HTTP Transport settings cannot be null.");
+            }
+
+            if (credential == null)
+            {
+                throw new ArgumentNullException($"{nameof(credential)} is null");
+            }
+
+            TlsVersions.Instance.SetLegacyAcceptableVersions();
+
+            var tokenCredential = new IotHubTokenCredential(hostName, credential, tokenType);
+
+            return new HttpJobClient(tokenCredential, transportSettings);
+        }
+
+#endif
+
         /// <inheritdoc />
         public void Dispose()
         {
@@ -52,7 +91,7 @@ namespace Microsoft.Azure.Devices
         /// Releases unmanaged and - optionally - managed resources.
         /// </summary>
         /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
-        protected virtual void Dispose(bool disposing) {}
+        protected virtual void Dispose(bool disposing) { }
 
         /// <summary>
         /// Explicitly open the JobClient instance.
@@ -78,7 +117,6 @@ namespace Microsoft.Azure.Devices
         /// <param name="cancellationToken">Task cancellation token</param>
         /// <returns>The matching JobResponse object</returns>
         public abstract Task<JobResponse> GetJobAsync(string jobId, CancellationToken cancellationToken);
-
 
         /// <summary>
         /// Get IQuery through which job responses for all job types and statuses are retrieved page by page

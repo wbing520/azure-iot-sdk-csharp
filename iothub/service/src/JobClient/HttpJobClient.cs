@@ -38,6 +38,16 @@ namespace Microsoft.Azure.Devices
                 transportSettings.Proxy);
         }
 
+        internal HttpJobClient(IotHubTokenCredential iotHubCredential, HttpTransportSettings transportSettings)
+        {
+            _httpClientHelper = new HttpClientHelper(
+                iotHubCredential.HttpsEndpoint,
+                iotHubCredential,
+                ExceptionHandlingHelper.GetDefaultErrorMapping(),
+                s_defaultOperationTimeout,
+                transportSettings.Proxy);
+        }
+
         // internal test helper
         internal HttpJobClient(IHttpClientHelper httpClientHelper)
         {
